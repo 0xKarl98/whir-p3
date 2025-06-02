@@ -80,17 +80,16 @@ where
 
         // Allocate space for the OOD challenge points and answers.
         // If there are any OOD samples expected, read them from the transcript.
-        // Optimization : We can do this to prevent zero vec allocation when OOD sample is equal to 0 
-        let (ood_points, ood_answers) = if ood_samples > 0 {  
-            let mut points = EF::zero_vec(ood_samples);  
-            let mut answers = EF::zero_vec(ood_samples);  
-            verifier_state.fill_challenge_scalars(&mut points)?;  
-            verifier_state.fill_next_scalars(&mut answers)?;  
-            (points, answers)  
-        } else {  
-            (EF::zero_vec(ood_samples), EF::zero_vec(ood_samples))  
+        // Optimization : We can do this to prevent zero vec allocation when OOD sample is equal to 0
+        let (ood_points, ood_answers) = if ood_samples > 0 {
+            let mut points = EF::zero_vec(ood_samples);
+            let mut answers = EF::zero_vec(ood_samples);
+            verifier_state.fill_challenge_scalars(&mut points)?;
+            verifier_state.fill_next_scalars(&mut answers)?;
+            (points, answers)
+        } else {
+            (EF::zero_vec(ood_samples), EF::zero_vec(ood_samples))
         };
-
 
         // Return a structured representation of the commitment.
         Ok(ParsedCommitment {
