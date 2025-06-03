@@ -79,17 +79,17 @@ where
         let root = verifier_state.read_digest()?;
 
         // Allocate space for the OOD challenge points and answers.
+        let mut ood_points = EF::zero_vec(ood_samples);
+        let mut ood_answers = EF::zero_vec(ood_samples);
+
         // If there are any OOD samples expected, read them from the transcript.
-        // Optimization : We can do this to prevent zero vec allocation when OOD sample is equal to 0
-        let (ood_points, ood_answers) = if ood_samples > 0 {
-            let mut points = EF::zero_vec(ood_samples);
-            let mut answers = EF::zero_vec(ood_samples);
-            verifier_state.fill_challenge_scalars(&mut points)?;
-            verifier_state.fill_next_scalars(&mut answers)?;
-            (points, answers)
-        } else {
-            (EF::zero_vec(ood_samples), EF::zero_vec(ood_samples))
-        };
+        if ood_samples > 0 {
+            // Read challenge points chosen by Fiat-Shamir.
+            verifier_state.fill_challenge_scalars(&mut ood_points)?;
+
+            // Read the prover's claimed evaluations at those points.
+            verifier_state.fill_next_scalars(&mut ood_answers)?;
+        }
 
         // Return a structured representation of the commitment.
         Ok(ParsedCommitment {
@@ -299,7 +299,7 @@ mod tests {
         ds.commit_statement(&params);
 
         // Create the prover state from the transcript.
-        let mut prover_state = ds.to_prover_state();
+        let mut prover_state = ds.to_prover_state::<_, 32>();
 
         // Commit the polynomial and obtain a witness (root, Merkle proof, OOD evaluations).
         let witness = committer
@@ -307,7 +307,7 @@ mod tests {
             .unwrap();
 
         // Simulate verifier state using transcript view of prover’s nonce string.
-        let mut verifier_state = ds.to_verifier_state(prover_state.narg_string());
+        let mut verifier_state = ds.to_verifier_state::<_, 32>(prover_state.narg_string());
 
         // Create a commitment reader and parse the commitment from verifier state.
         let reader = CommitmentReader::new(&params);
@@ -338,7 +338,7 @@ mod tests {
         ds.commit_statement(&params);
 
         // Generate the prover state from the transcript.
-        let mut prover_state = ds.to_prover_state();
+        let mut prover_state = ds.to_prover_state::<_, 32>();
 
         // Commit the polynomial to obtain the witness.
         let witness = committer
@@ -346,7 +346,7 @@ mod tests {
             .unwrap();
 
         // Initialize the verifier view of the transcript.
-        let mut verifier_state = ds.to_verifier_state(prover_state.narg_string());
+        let mut verifier_state = ds.to_verifier_state::<_, 32>(prover_state.narg_string());
 
         // Parse the commitment from verifier transcript.
         let reader = CommitmentReader::new(&params);
@@ -380,7 +380,7 @@ mod tests {
         ds.commit_statement(&params);
 
         // Create prover state from the transcript.
-        let mut prover_state = ds.to_prover_state();
+        let mut prover_state = ds.to_prover_state::<_, 32>();
 
         // Commit the polynomial and obtain the witness.
         let witness = committer
@@ -388,7 +388,7 @@ mod tests {
             .unwrap();
 
         // Initialize verifier view from prover's transcript string.
-        let mut verifier_state = ds.to_verifier_state(prover_state.narg_string());
+        let mut verifier_state = ds.to_verifier_state::<_, 32>(prover_state.narg_string());
 
         // Parse the commitment from verifier’s transcript.
         let reader = CommitmentReader::new(&params);
@@ -417,11 +417,11 @@ mod tests {
         ds.commit_statement(&params);
 
         // Generate prover and verifier transcript states.
-        let mut prover_state = ds.to_prover_state();
+        let mut prover_state = ds.to_prover_state::<_, 32>();
         let _ = committer
             .commit(&dft, &mut prover_state, polynomial)
             .unwrap();
-        let mut verifier_state = ds.to_verifier_state(prover_state.narg_string());
+        let mut verifier_state = ds.to_verifier_state::<_, 32>(prover_state.narg_string());
 
         // Parse the commitment from the verifier’s state.
         let reader = CommitmentReader::new(&params);
